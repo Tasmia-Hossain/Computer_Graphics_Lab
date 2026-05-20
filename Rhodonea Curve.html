@@ -1,0 +1,126 @@
+<!-- saved from url=(0065)http://math.hws.edu/graphicsbook/source/webgl/simple-texture.html -->
+<!-- modified by Mohammad Imrul Jubair -->
+<html>
+<title>LAB-2: Part A - Rhodonea Curve</title>
+<canvas id="webglcanvas" width="500" height="500"></canvas>
+<script>
+    var canvas = document.getElementById("webglcanvas"); 
+    var gl = canvas.getContext("webgl");
+    
+    var vertexShaderSource =
+       `attribute vec2 a_coords;
+        void main() {
+            gl_Position = vec4(a_coords, 0.0, 1.0);
+            gl_PointSize = 2.0;
+        }`;
+    
+    var fragmentShaderSource =
+       `precision mediump float;
+        uniform int u_clickCount;
+        void main() {
+            // Alternate between green and red based on click count
+            // First click (0) is green, second (1) is red, etc.
+            if (mod(float(u_clickCount), 2.0) < 1.0) {
+                gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); // Green
+            } else {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // Red
+            }
+        }`;
+    
+    var vsh = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vsh, vertexShaderSource);
+    gl.compileShader(vsh);
+    
+    var fsh = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fsh, fragmentShaderSource);
+    gl.compileShader(fsh);
+    
+    var prog = gl.createProgram(); 
+    gl.attachShader(prog, vsh); 
+    gl.attachShader(prog, fsh);
+    gl.linkProgram(prog); 
+    gl.useProgram(prog);
+    
+    var a_coords_location = gl.getAttribLocation(prog, "a_coords");
+    var u_clickCount_location = gl.getUniformLocation(prog, "u_clickCount");
+    
+    var a_coords_buffer = gl.createBuffer();
+    
+    var clickCount = 0;
+    
+    function getPetalCount(clickNum) {
+        if (clickNum % 2 === 0) {
+            // Even clicks (0, 2, 4, 6...): 4, 8, 12, 16...
+            return 4 * (Math.floor(clickNum / 2) + 1);
+        } else {
+            // Odd clicks (1, 3, 5, 7...): 3, 5, 7, 9...
+            return 2 * Math.floor(clickNum / 2) + 3;
+        }
+    }
+    
+    function generateRoseVertices(petals) {
+        var vertices = [];
+        var numPoints = 3000;
+        
+        // For Rhodonea curve: r = cos(k * theta)
+        // If k is odd: k petals
+        // If k is even: 2k petals
+        // So to get n petals:
+        //   - if n is odd: k = n
+        //   - if n is even: k = n/2
+        
+        var k;
+        if (petals % 2 === 1) {
+            k = petals;
+        } else {
+            k = petals / 2;
+        }
+        
+        // Determine the angle range needed for complete rose
+        var angleMax = 2 * Math.PI;
+        if (petals % 2 === 1) {
+            // Odd petals: complete in π radians
+            angleMax = Math.PI;
+        }
+        
+        for (var i = 0; i <= numPoints; i++) {
+            var theta = (i / numPoints) * angleMax;
+            var r = 0.6 * Math.cos(k * theta);
+            
+            // Convert polar to Cartesian
+            var x = r * Math.cos(theta);
+            var y = r * Math.sin(theta);
+            
+            vertices.push(x);
+            vertices.push(y);
+        }
+        
+        return new Float32Array(vertices);
+    }
+    
+    function draw() {
+        var petals = getPetalCount(clickCount);
+        var coords = generateRoseVertices(petals);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, a_coords_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, coords, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(a_coords_location, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(a_coords_location);
+        
+        gl.uniform1i(u_clickCount_location, clickCount);
+        
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.POINTS, 0, coords.length / 2);
+    }
+    
+    // Initial draw (clickCount = 0, 4 green petals)
+    draw();
+    
+    // Mouse click handler
+    canvas.onmousedown = function() {
+        clickCount++;
+        draw();
+    };
+</script>
+</html>

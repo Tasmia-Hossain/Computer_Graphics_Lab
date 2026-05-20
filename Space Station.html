@@ -1,0 +1,220 @@
+<!-- saved from url=(0065)http://math.hws.edu/graphicsbook/source/webgl/simple-texture.html -->
+<!-- modified by Mohammad Imrul Jubair -->
+<html>
+<title>LAB-2: Part B - Space Station</title>
+<canvas id="webglcanvas" width="500" height="500"></canvas>
+<p>Press keys: R (Red alert), G (Green systems OK), B (Blue shield), N (Normal)</p>
+<script>
+    var canvas = document.getElementById("webglcanvas"); 
+    var gl = canvas.getContext("webgl");
+    
+    var vertexShaderSource =
+       `attribute vec3 a_coords;
+        attribute vec3 a_color;
+        varying vec3 v_color;
+        void main() {
+            gl_Position = vec4(a_coords, 1.0);
+            v_color = a_color;
+        }`;
+    
+    var fragmentShaderSource =
+       `precision mediump float;
+        varying vec3 v_color;
+        uniform int u_mode;
+        
+        void main() {
+            vec3 color = v_color;
+    
+			if (u_mode == 1) {
+				// Red alert mode
+				color = color * vec3(1.5, 0.5, 0.5);
+			} else if (u_mode == 2) {
+				// Green systems OK
+				color = color * vec3(0.7, 1.3, 0.7);
+			} else if (u_mode == 3) {
+				// Blue shield active
+				color = color * vec3(0.6, 0.8, 1.4);
+			}
+			
+			// Using built-in clamp function to keep colors in valid range
+			color = clamp(color, 0.0, 1.0);
+			
+			gl_FragColor = vec4(color, 1.0);
+        }`;
+    
+    var vsh = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vsh, vertexShaderSource);
+    gl.compileShader(vsh);
+    
+    var fsh = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fsh, fragmentShaderSource);
+    gl.compileShader(fsh);
+    
+    var prog = gl.createProgram(); 
+    gl.attachShader(prog, vsh); 
+    gl.attachShader(prog, fsh);
+    gl.linkProgram(prog); 
+    gl.useProgram(prog);
+    
+    var a_coords_location = gl.getAttribLocation(prog, "a_coords");
+    var a_color_location = gl.getAttribLocation(prog, "a_color");
+    var u_mode_location = gl.getUniformLocation(prog, "u_mode");
+    
+    var mode = 0; // 0=normal, 1=red alert, 2=green OK, 3=blue shield
+    
+    var coords = [];
+    var colors = [];
+    
+    // Space Station Main Body (central hexagon) - 6 triangles from center
+    var centerX = 0.0, centerY = 0.0;
+    var radius = 0.25;
+    for (var i = 0; i < 6; i++) {
+        var angle1 = (i * Math.PI * 2) / 6;
+        var angle2 = ((i + 1) * Math.PI * 2) / 6;
+        
+        coords.push(centerX, centerY, 0.0);
+        coords.push(centerX + radius * Math.cos(angle1), centerY + radius * Math.sin(angle1), 0.0);
+        coords.push(centerX + radius * Math.cos(angle2), centerY + radius * Math.sin(angle2), 0.0);
+        
+        colors.push(0.7, 0.7, 0.75);
+        colors.push(0.6, 0.6, 0.65);
+        colors.push(0.65, 0.65, 0.7);
+    }
+    
+    // Solar Panels - Left side (3 triangles = 9 vertices)
+    coords.push(-0.6, 0.25, 0.0,  -0.35, 0.25, 0.0,  -0.6, 0.15, 0.0);
+    colors.push(0.1, 0.2, 0.4,  0.15, 0.25, 0.45,  0.1, 0.2, 0.4);
+    
+    coords.push(-0.35, 0.25, 0.0,  -0.35, 0.15, 0.0,  -0.6, 0.15, 0.0);
+    colors.push(0.15, 0.25, 0.45,  0.12, 0.22, 0.42,  0.1, 0.2, 0.4);
+    
+    coords.push(-0.6, 0.1, 0.0,  -0.35, 0.1, 0.0,  -0.6, 0.0, 0.0);
+    colors.push(0.1, 0.2, 0.4,  0.15, 0.25, 0.45,  0.1, 0.2, 0.4);
+    
+    coords.push(-0.35, 0.1, 0.0,  -0.35, 0.0, 0.0,  -0.6, 0.0, 0.0);
+    colors.push(0.15, 0.25, 0.45,  0.12, 0.22, 0.42,  0.1, 0.2, 0.4);
+    
+    coords.push(-0.6, -0.05, 0.0,  -0.35, -0.05, 0.0,  -0.6, -0.15, 0.0);
+    colors.push(0.1, 0.2, 0.4,  0.15, 0.25, 0.45,  0.1, 0.2, 0.4);
+    
+    coords.push(-0.35, -0.05, 0.0,  -0.35, -0.15, 0.0,  -0.6, -0.15, 0.0);
+    colors.push(0.15, 0.25, 0.45,  0.12, 0.22, 0.42,  0.1, 0.2, 0.4);
+    
+    // Solar Panels - Right side (6 triangles = 18 vertices)
+    coords.push(0.35, 0.25, 0.0,  0.6, 0.25, 0.0,  0.35, 0.15, 0.0);
+    colors.push(0.15, 0.25, 0.45,  0.1, 0.2, 0.4,  0.12, 0.22, 0.42);
+    
+    coords.push(0.6, 0.25, 0.0,  0.6, 0.15, 0.0,  0.35, 0.15, 0.0);
+    colors.push(0.1, 0.2, 0.4,  0.1, 0.2, 0.4,  0.12, 0.22, 0.42);
+    
+    coords.push(0.35, 0.1, 0.0,  0.6, 0.1, 0.0,  0.35, 0.0, 0.0);
+    colors.push(0.15, 0.25, 0.45,  0.1, 0.2, 0.4,  0.12, 0.22, 0.42);
+    
+    coords.push(0.6, 0.1, 0.0,  0.6, 0.0, 0.0,  0.35, 0.0, 0.0);
+    colors.push(0.1, 0.2, 0.4,  0.1, 0.2, 0.4,  0.12, 0.22, 0.42);
+    
+    coords.push(0.35, -0.05, 0.0,  0.6, -0.05, 0.0,  0.35, -0.15, 0.0);
+    colors.push(0.15, 0.25, 0.45,  0.1, 0.2, 0.4,  0.12, 0.22, 0.42);
+    
+    coords.push(0.6, -0.05, 0.0,  0.6, -0.15, 0.0,  0.35, -0.15, 0.0);
+    colors.push(0.1, 0.2, 0.4,  0.1, 0.2, 0.4,  0.12, 0.22, 0.42);
+    
+    // Antenna/Communication dish (5 triangles = 15 vertices)
+    coords.push(0.0, 0.3, 0.0,  -0.02, 0.5, 0.0,  0.02, 0.5, 0.0);
+    colors.push(0.5, 0.5, 0.5,  0.6, 0.6, 0.6,  0.6, 0.6, 0.6);
+    
+    // Dish
+    coords.push(-0.08, 0.5, 0.0,  0.0, 0.52, 0.0,  0.08, 0.5, 0.0);
+    colors.push(0.8, 0.3, 0.1,  0.9, 0.4, 0.15,  0.8, 0.3, 0.1);
+    
+    coords.push(-0.1, 0.48, 0.0,  -0.08, 0.5, 0.0,  0.0, 0.45, 0.0);
+    colors.push(0.7, 0.25, 0.08,  0.8, 0.3, 0.1,  0.75, 0.28, 0.09);
+    
+    coords.push(0.08, 0.5, 0.0,  0.1, 0.48, 0.0,  0.0, 0.45, 0.0);
+    colors.push(0.8, 0.3, 0.1,  0.7, 0.25, 0.08,  0.75, 0.28, 0.09);
+    
+    coords.push(-0.1, 0.48, 0.0,  0.1, 0.48, 0.0,  0.0, 0.45, 0.0);
+    colors.push(0.7, 0.25, 0.08,  0.7, 0.25, 0.08,  0.75, 0.28, 0.09);
+    
+    // Docking port (bottom) - 4 triangles
+    coords.push(-0.08, -0.3, 0.0,  0.08, -0.3, 0.0,  0.0, -0.35, 0.0);
+    colors.push(0.4, 0.4, 0.45,  0.4, 0.4, 0.45,  0.5, 0.5, 0.55);
+    
+    coords.push(-0.1, -0.35, 0.0,  -0.08, -0.3, 0.0,  -0.05, -0.4, 0.0);
+    colors.push(0.35, 0.35, 0.4,  0.4, 0.4, 0.45,  0.45, 0.45, 0.5);
+    
+    coords.push(0.08, -0.3, 0.0,  0.1, -0.35, 0.0,  0.05, -0.4, 0.0);
+    colors.push(0.4, 0.4, 0.45,  0.35, 0.35, 0.4,  0.45, 0.45, 0.5);
+    
+    coords.push(-0.05, -0.4, 0.0,  0.05, -0.4, 0.0,  0.0, -0.45, 0.0);
+    colors.push(0.45, 0.45, 0.5,  0.45, 0.45, 0.5,  0.55, 0.55, 0.6);
+    
+    // Windows on main body - 6 small triangles
+    for (var i = 0; i < 6; i++) {
+        var angle = (i * Math.PI * 2) / 6 + Math.PI / 12;
+        var wx = centerX + 0.15 * Math.cos(angle);
+        var wy = centerY + 0.15 * Math.sin(angle);
+        
+        coords.push(wx - 0.02, wy - 0.02, 0.0,  wx + 0.02, wy - 0.02, 0.0,  wx, wy + 0.02, 0.0);
+        colors.push(0.3, 0.7, 1.0,  0.4, 0.8, 1.0,  0.5, 0.9, 1.0);
+    }
+    
+    // Stars in background - 12 small triangles scattered
+    var starPositions = [
+        [-0.8, 0.7], [0.7, 0.8], [-0.6, -0.6], [0.85, -0.5],
+        [-0.85, 0.3], [0.5, 0.6], [-0.3, 0.8], [0.8, 0.2],
+        [-0.7, -0.3], [0.3, -0.7], [-0.9, -0.8], [0.9, 0.9]
+    ];
+    
+    for (var i = 0; i < starPositions.length; i++) {
+        var sx = starPositions[i][0];
+        var sy = starPositions[i][1];
+        var size = 0.015;
+        
+        coords.push(sx - size, sy, 0.0,  sx + size, sy, 0.0,  sx, sy + size, 0.0);
+        colors.push(1.0, 1.0, 0.9,  1.0, 1.0, 0.95,  1.0, 1.0, 1.0);
+    }
+    
+    var coordsArray = new Float32Array(coords);
+    var colorsArray = new Float32Array(colors);
+    
+    console.log("Total vertices: " + coordsArray.length / 3);
+    
+    var a_coords_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, a_coords_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, coordsArray, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(a_coords_location, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_coords_location);
+    
+    var a_color_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, a_color_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, colorsArray, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(a_color_location, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(a_color_location);
+    
+    function draw() {
+        gl.uniform1i(u_mode_location, mode);
+        gl.clearColor(0.05, 0.05, 0.15, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, coordsArray.length / 3);
+    }
+    
+    draw();
+    
+    document.onkeydown = function(event) {
+        var key = event.key.toLowerCase();
+        
+        if (key == 'r') {
+            mode = 1; // Red alert
+        } else if (key == 'g') {
+            mode = 2; // Green systems OK
+        } else if (key == 'b') {
+            mode = 3; // Blue shield
+        } else if (key == 'n') {
+            mode = 0; // Normal
+        }
+        
+        draw();
+    };
+</script>
+</html>
